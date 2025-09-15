@@ -1,0 +1,12 @@
+### specific folders
+*annarchy*/
+*__pycache__/
+
+### specific files
+*.npy
+*.svg
+*.png
+results/
+logs/
+dataRaw/
+*:Zone.Identifier

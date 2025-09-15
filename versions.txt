@@ -1,0 +1,10 @@
+Python:
+    3.7.4
+
+ANNarchy (4.7.0.1):
+    commit a46d3058582f7dcb9f7a7a44ba46d1ce981afa15
+    Author: Julien Vitay <julien.vitay@informatik.tu-chemnitz.de>
+    Date:   Fri Nov 19 09:20:39 2021 +0100
+
+        Release 4.7.0.1
+
