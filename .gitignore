@@ -20,3 +20,9 @@ venv/
 .mypy_cache/
 .pytest_cache/
 .DS_Store
+results/**
+logs/**
+dataRaw/**
+!results/.gitkeep
+!logs/.gitkeep
+!dataRaw/.gitkeep
