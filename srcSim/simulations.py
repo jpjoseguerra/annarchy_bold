@@ -1,7 +1,12 @@
+# -*- coding: utf-8 -*-
+
 from ANNarchy import *
 from ANNarchy.extensions.bold import *
 import sys
 import os
+import time
+import numpy as np
+
 from model import params, rng, balloon_two_inputs, add_scaled_projections, BoldModel_r
 from extras import getFiringRateDist, lognormalPDF, plot_input_and_raster, addMonitors, startMonitors, getMonitors
 
@@ -14,15 +19,12 @@ def initialTestofBOLD():
     simParams['rampUp']=1000#ms
     simParams['sim_dur']=30000#ms
 
-
-
     #########################################   ADD PROJECTIONS IF MODEL v2   ###########################################
     if 'v2' in params['optimizeRates']:
         """
             add the scaled projections of model v2
         """
         add_scaled_projections(params['fittedParams']['S_INP'], params['fittedParams']['S_EI'], params['fittedParams']['S_IE'], params['fittedParams']['S_II'], rng)
-
 
     ###################################################   MONITORS   ####################################################
     if params['input']=='Current':
@@ -36,52 +38,50 @@ def initialTestofBOLD():
     mon={}
     mon=addMonitors(monDict,mon)
 
-
-
     #################################################   BOLDMONITORS   ##################################################
     monB={}
     ### STANDARD BOLDMONITOR WITHOUT ANY OPTIONALS --> JUST DEFINE POPULATIONS AND INPUT VARIABLE
     monB['1'] = BoldMonitor(populations=[get_population('corEL1'), get_population('corIL1')],
                             mapping={'I_CBF':'syn'})
-                                
+
     ### ALSO RECORD INPUT (r) OF BOLDNEURON
     monB['2'] = BoldMonitor(populations=[get_population('corEL1'), get_population('corIL1')],
                             mapping={'I_CBF':'syn'},
                             recorded_variables=["BOLD", "I_CBF"])
-                            
+
     ### SCALE THE POPULATION SIGNALS EQUALLY
     monB['3'] = BoldMonitor(populations=[get_population('corEL1'), get_population('corIL1')],
                             scale_factor=[1,1],
                             mapping={'I_CBF':'syn'},
                             recorded_variables=["BOLD", "I_CBF"])
-                            
+
     ### NORMALIZE THE POPULATION SIGNALS WITH BASELINE OVER 2000 ms
     monB['4'] = BoldMonitor(populations=[get_population('corEL1'), get_population('corIL1')],
                             normalize_input=[10000,10000],
                             mapping={'I_CBF':'syn'},
                             recorded_variables=["BOLD", "I_CBF", "f_in"])
-                            
+
     ### USE SELF DEFINED POPULATION SIGNALS (source_variables + BOLD_MODEL (input_variables + bold_model)
     monB['5'] = BoldMonitor(populations=[get_population('corEL1'), get_population('corIL1')],
                             normalize_input=[10000,10000],
                             mapping={'I_CBF':'var_f', 'I_CMRO2':'var_r'},
                             bold_model=balloon_two_inputs,
                             recorded_variables=["I_CBF","I_CMRO2","f_in","r","BOLD"])
-    
+
     ### SELF-DEFINED ONLY corE WITHOUT NORMALIZATION
     monB['6'] = BoldMonitor(populations=get_population('corEL1'),
                             scale_factor=1,
                             mapping={'I_CBF':'var_f', 'I_CMRO2':'var_r'},
                             bold_model=balloon_two_inputs,
                             recorded_variables=["I_CBF","I_CMRO2","f_in","r","BOLD"])
-    
+
     ### SELF-DEFINED ONLY corI WITHOUT NORMALIZATION
     monB['7'] = BoldMonitor(populations=get_population('corIL1'),
                             scale_factor=1,
                             mapping={'I_CBF':'var_f', 'I_CMRO2':'var_r'},
                             bold_model=balloon_two_inputs,
                             recorded_variables=["I_CBF","I_CMRO2","f_in","r","BOLD"])
-    
+
     ### ONLY corE WITH NORMALIZATION
     monB['8'] = BoldMonitor(populations=get_population('corEL1'),
                             scale_factor=1,
@@ -89,7 +89,7 @@ def initialTestofBOLD():
                             mapping={'I_CBF':'var_f', 'I_CMRO2':'var_r'},
                             bold_model=balloon_two_inputs,
                             recorded_variables=["I_CBF","I_CMRO2","f_in","r","BOLD"])
-    
+
     ### NLY corI WITH NORMALIZATION
     monB['9'] = BoldMonitor(populations=get_population('corIL1'),
                             scale_factor=1,
@@ -97,13 +97,13 @@ def initialTestofBOLD():
                             mapping={'I_CBF':'var_f', 'I_CMRO2':'var_r'},
                             bold_model=balloon_two_inputs,
                             recorded_variables=["I_CBF","I_CMRO2","f_in","r","BOLD"])
-                                
+
     ### Standard only corE
     monB['10'] = BoldMonitor(populations=get_population('corEL1'),
                             scale_factor=1,
                             mapping={'I_CBF':'syn'},
                             recorded_variables=["BOLD", "I_CBF"])
-                                
+
     ### Standard only corI
     monB['11'] = BoldMonitor(populations=get_population('corIL1'),
                             scale_factor=1,
@@ -123,49 +123,34 @@ def initialTestofBOLD():
               'BOLD;10':['BOLD', 'I_CBF'],
               'BOLD;11':['BOLD', 'I_CBF']}
 
-
-
     ####################################################   COMPILE   ####################################################
     compile()
-    
-
 
     ##################################################   SIMULATION   ###################################################
-
-
     ### RAMP_UP FOR MODEL
     simulate(simParams['rampUp'])
 
-
     ### START MONITORS
-
     ## standard monitors
     startMonitors(monDict,mon)
-
     ## BOLD monitors
     startMonitors(monDictB,monB)
-
 
     ### ACTUAL SIMULATION
     simulate(simParams['sim_dur'])
 
-
     ### GET MONITORS
-
     ## standard monitors
     recordings={}
     recordings=getMonitors(monDict,mon,recordings)
-
     ## BOLD monitors
     recordingsB={}
     recordingsB=getMonitors(monDictB,monB,recordingsB)
-    
 
     ### SAVE DATA
     np.save('../dataRaw/simulations_initialTestofBOLD_recordings.npy',recordings)
     np.save('../dataRaw/simulations_initialTestofBOLD_recordingsB.npy',recordingsB)
     np.save('../dataRaw/simulations_initialTestofBOLD_simParams.npy',simParams)
-
 
 
 def BOLDfromDifferentSources(input_factor=1.0, stimulus=0, simID='', monitoring=0):
@@ -177,13 +162,13 @@ def BOLDfromDifferentSources(input_factor=1.0, stimulus=0, simID='', monitoring=
             1: short input pulse
             2: long resting state where only BOLD is recorded
             3: long input pulse
+            4: 600 s continuos con varios estímulos periódicos (pulsos ON/OFF), simulación continua
         simID: string
             simulation identificator (e.g. number), default=''
         monitoring: int
             0: default, all monitors active
             1: no monitor activate
             2: only a single BOLD monitor active
-            
     """
     #########################################   IMPORTANT SIMULATION PARAMS   ###########################################
     simParams={}
@@ -191,6 +176,7 @@ def BOLDfromDifferentSources(input_factor=1.0, stimulus=0, simID='', monitoring=
         simParams[key]=params[key]
     simParams['rampUp']=2000#ms !!!ATTENTION!!! rampUp has to be >= firingRateWindow otherwise firing rate starts at a wrong value
     simParams['stimulus']=stimulus
+
     if stimulus==0:
         ## long input
         simParams['sim_dur1'], simParams['sim_dur2'], simParams['sim_dur3']= [5000,20000,0]#ms
@@ -203,24 +189,38 @@ def BOLDfromDifferentSources(input_factor=1.0, stimulus=0, simID='', monitoring=
     elif stimulus==3:
         ## long impulse
         simParams['sim_dur1'], simParams['sim_dur2'], simParams['sim_dur3'] = [5000,20000,15000]#ms
+    elif stimulus==4:
+        ## 600 s continuos con pulsos periódicos (continuo, sin reinicios)
+        simParams['sim_total_ms'] = 600*1000       # 600 s
+        simParams['pulse_on_ms']  = 1000           # 1 s ON (ajustable)
+        simParams['pulse_off_ms'] = 9000           # 9 s OFF -> periodo 10 s (ajustable)
+        simParams['first_pulse_after_ms'] = 10000  # baseline inicial antes del primer pulso (ajustable)
+        # Compatibilidad con el flujo original (no se usan en modo 4):
+        simParams['sim_dur1'], simParams['sim_dur2'], simParams['sim_dur3'] = [0, 0, 0]
     else:
-        print('second argument, stimulus, has to be 0 or 1')
+        print('second argument, stimulus, has to be 0, 1, 2, 3 or 4')
         quit()
-    simParams['sim_dur']=simParams['sim_dur1'] + simParams['sim_dur2'] + simParams['sim_dur3']
+
+    # Duración total (para todos los modos)
+    if stimulus==4:
+        simParams['sim_dur'] = simParams['sim_total_ms']
+    else:
+        simParams['sim_dur'] = simParams['sim_dur1'] + simParams['sim_dur2'] + simParams['sim_dur3']
+
+    # Parámetros BOLD y monitores
     simParams['BOLDbaseline']=5000#ms
     simParams['firingRateWindow']=20#ms
     simParams['input_factor']=input_factor
     simParams['monitoring']=monitoring
+
+    # Guardado
     save_string = str(simParams['input_factor']).replace('.','_')+'_'+str(simParams['stimulus']).replace('.','_')
     if len(simID)>0:
         save_string=save_string+'__'+simID
-    ## append saving files if monitoring or populations size is different from default
     if monitoring!=0:
         save_string=save_string+'__'+str(int(monitoring))
     if params['corE_popsize']!=params['corE_popsize_default']:
         save_string=save_string+'__'+str(int(params['corE_popsize']))
-        
-
 
     #########################################   ADD PROJECTIONS IF MODEL v2   ###########################################
     if 'v2' in params['optimizeRates']:
@@ -228,7 +228,6 @@ def BOLDfromDifferentSources(input_factor=1.0, stimulus=0, simID='', monitoring=
             add the scaled projections of model v2
         """
         add_scaled_projections(params['fittedParams']['S_INP'], params['fittedParams']['S_EI'], params['fittedParams']['S_IE'], params['fittedParams']['S_II'], rng)
-
 
     ###################################################   MONITORS   ####################################################
     if stimulus!=2:
@@ -246,15 +245,12 @@ def BOLDfromDifferentSources(input_factor=1.0, stimulus=0, simID='', monitoring=
         mon={}
         mon=addMonitors(monDict,mon)
 
-
-
     #################################################   BOLDMONITORS   ##################################################
     """
         Generate BOLD monitors with different input signals.
         Additionally implement BOLD monitors for the individual populations, without normalization to verify the raw input signals.
         Attention! For the raw input signals, the BOLD calculation may "explode" --> Use BOLD model (BoldModel_r) which doesn't perform calculations
     """
-
     monB={}
     if monitoring==0:
         ### BOLD monitor which uses single input: all syn input
@@ -275,7 +271,7 @@ def BOLDfromDifferentSources(input_factor=1.0, stimulus=0, simID='', monitoring=
                                     mapping={'I_CBF':'syn'},
                                     bold_model=BoldModel_r,
                                     recorded_variables=["I_CBF"])
-                                
+
         ### single input: excitatory syn input
         monB['2'] = BoldMonitor(populations=[get_population('corEL1'), get_population('corIL1')],
                                 normalize_input=[simParams['BOLDbaseline'],simParams['BOLDbaseline']],
@@ -291,7 +287,7 @@ def BOLDfromDifferentSources(input_factor=1.0, stimulus=0, simID='', monitoring=
                                     mapping={'I_CBF':'g_ampa'},
                                     bold_model=BoldModel_r,
                                     recorded_variables=["I_CBF"])
-        
+
         ### single input: firing rate
         ## to record firing rate from spiking populations it has to be calculated
         get_population('corEL1').compute_firing_rate(window=simParams['firingRateWindow'])
@@ -311,7 +307,7 @@ def BOLDfromDifferentSources(input_factor=1.0, stimulus=0, simID='', monitoring=
                                     mapping={'I_CBF':'r'},
                                     bold_model=BoldModel_r,
                                     recorded_variables=["I_CBF"])
-        
+
         ### two inputs: Buxton (2012, 2014, 2021), excitatory --> CMRO2&CBF, inhibitory --> CBF, use post-synaptic currents as driving signals (they likely cause metabolism)
         monB['4'] = BoldMonitor(populations=[get_population('corEL1'), get_population('corIL1')],
                                 normalize_input=[simParams['BOLDbaseline'],simParams['BOLDbaseline']],
@@ -328,7 +324,7 @@ def BOLDfromDifferentSources(input_factor=1.0, stimulus=0, simID='', monitoring=
                                 mapping={'I_CBF':'var_f', 'I_CMRO2':'var_r'},
                                 bold_model=BoldModel_r,
                                 recorded_variables=["I_CBF","I_CMRO2"])
-        
+
         ### two inputs: Buxton + Howarth et al. (2021), in interneurons firing rate drives CMRO2
         monB['5'] = BoldMonitor(populations=[get_population('corEL1'), get_population('corIL1')],
                                 normalize_input=[simParams['BOLDbaseline'],simParams['BOLDbaseline']],
@@ -345,7 +341,7 @@ def BOLDfromDifferentSources(input_factor=1.0, stimulus=0, simID='', monitoring=
                                 mapping={'I_CBF':'var_f', 'I_CMRO2':'var_ra'},
                                 bold_model=BoldModel_r,
                                 recorded_variables=["I_CBF","I_CMRO2"])
-        
+
         ### two inputs: Buxton, but flow is quadratic
         monB['6'] = BoldMonitor(populations=[get_population('corEL1'), get_population('corIL1')],
                                 normalize_input=[simParams['BOLDbaseline'],simParams['BOLDbaseline']],
@@ -392,29 +388,19 @@ def BOLDfromDifferentSources(input_factor=1.0, stimulus=0, simID='', monitoring=
                                 recorded_variables=["BOLD", "I_CBF", "f_in", "E", "q", "v", "f_out"])
         monDictB={'BOLD;1':            ['BOLD', 'I_CBF', "f_in", "E", "q", "v", "f_out"]}
 
-
-
     ####################################################   COMPILE   ####################################################
     compile('annarchy_folders/annarchy_'+save_string)
     if os.getcwd().split('/')[-1]=='annarchy_folders': os.chdir('../')
 
-    
-
-
     ##################################################   SIMULATION   ###################################################
-
-
     ### RAMP_UP FOR MODEL
     simulate(simParams['rampUp'])
 
-
     ### START MONITORS
-
     ## standard monitors
     if stimulus!=2:
         ## DEACTIVATE MONITORS FOR LONG RESTING SIMULATION
         startMonitors(monDict,mon)
-
     ## BOLD monitors
     startMonitors(monDictB,monB)
 
@@ -423,13 +409,47 @@ def BOLDfromDifferentSources(input_factor=1.0, stimulus=0, simID='', monitoring=
         t1 = time.time()
 
     ### ACTUAL SIMULATION
-    simulate(simParams['sim_dur1'])
-    ## increase input
-    get_population('inputPop').offsetVal = params['inputPop_init_offsetVal']*simParams['input_factor']
-    simulate(simParams['sim_dur2'])
-    ## reset input
-    get_population('inputPop').offsetVal = params['inputPop_init_offsetVal']
-    simulate(simParams['sim_dur3'])
+    if simParams['stimulus'] != 4:
+        simulate(simParams['sim_dur1'])
+        ## increase input
+        get_population('inputPop').offsetVal = params['inputPop_init_offsetVal']*simParams['input_factor']
+        simulate(simParams['sim_dur2'])
+        ## reset input
+        get_population('inputPop').offsetVal = params['inputPop_init_offsetVal']
+        simulate(simParams['sim_dur3'])
+    else:
+        # ---- MODO 4: 600 s con pulsos periódicos en una sola simulación continua ----
+        total   = int(simParams['sim_total_ms'])
+        on_ms   = int(simParams['pulse_on_ms'])
+        off_ms  = int(simParams['pulse_off_ms'])
+        t       = 0
+
+        # Baseline inicial antes del primer pulso
+        pre = min(int(simParams['first_pulse_after_ms']), total)
+        simulate(pre); t += pre
+
+        # Alternar ON/OFF hasta completar total
+        stim_onsets = []
+        while t < total:
+            # ON
+            if t >= total: break
+            get_population('inputPop').offsetVal = params['inputPop_init_offsetVal'] * simParams['input_factor']
+            stim_onsets.append(int(t))
+            dur_on = min(on_ms, total - t)
+            simulate(dur_on); t += dur_on
+
+            # OFF (volver a baseline)
+            get_population('inputPop').offsetVal = params['inputPop_init_offsetVal']
+            if t >= total: break
+            dur_off = min(off_ms, total - t)
+            simulate(dur_off); t += dur_off
+
+        # Asegura baseline al terminar
+        get_population('inputPop').offsetVal = params['inputPop_init_offsetVal']
+
+        # Guarda onsets en simParams (útil para plotting posterior)
+        simParams['stim_onsets_ms'] = stim_onsets
+        simParams['stim_duration_ms'] = on_ms
 
     ## Stop performance measurement (if requested)
     if params["measure_time"]:
@@ -444,7 +464,6 @@ def BOLDfromDifferentSources(input_factor=1.0, stimulus=0, simID='', monitoring=
             pass
 
     ### GET MONITORS
-
     ## standard monitors
     if stimulus!=2:
         recordings={}
@@ -453,14 +472,11 @@ def BOLDfromDifferentSources(input_factor=1.0, stimulus=0, simID='', monitoring=
     ## BOLD monitors
     recordingsB={}
     recordingsB=getMonitors(monDictB,monB,recordingsB)
-    
 
     ### SAVE DATA
     if stimulus!=2: np.save('../dataRaw/simulations_BOLDfromDifferentSources_recordings_'+save_string+'.npy',recordings)
     np.save('../dataRaw/simulations_BOLDfromDifferentSources_recordingsB_'+save_string+'.npy',recordingsB)
     np.save('../dataRaw/simulations_BOLDfromDifferentSources_simParams_'+save_string+'.npy',simParams)
-
-
 
 
 if __name__=='__main__':
@@ -480,4 +496,3 @@ if __name__=='__main__':
     else:
         ## standard simulation arguments used
         BOLDfromDifferentSources()
-

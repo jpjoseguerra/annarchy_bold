@@ -1,0 +1,6 @@
+# Ignore everything in this directory
+*
+# Except this file
+!.gitignore
+!optimize_ratesv2_obtainedParams15.npy
+*/

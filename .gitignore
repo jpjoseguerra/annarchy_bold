@@ -1,16 +1,13 @@
-### specific folders
+# === Project-specific ===
 *annarchy*/
-*__pycache__/
-
-### specific files
-*.npy
-*.svg
-*.png
-results/
-logs/
-dataRaw/
 *:Zone.Identifier
-# Python
+
+# === Ignorar directorios pesados (salvo PNG y .gitkeep) ===
+results/**
+logs/**
+dataRaw/**
+
+# === Python ===
 __pycache__/
 *.py[cod]
 *.egg-info/
@@ -20,9 +17,23 @@ venv/
 .mypy_cache/
 .pytest_cache/
 .DS_Store
-results/**
-logs/**
-dataRaw/**
+
+# === Tipos de archivo a ignorar globalmente (pero NO PNG) ===
+*.npy
+*.svg
+
+# === Mantener carpetas visibles si quieres (vacías) ===
 !results/.gitkeep
 !logs/.gitkeep
 !dataRaw/.gitkeep
+
+# === Permitir PNGs en todo el repo ===
+# (no hay regla '*.png' -> los PNG fuera de carpetas ignoradas ya quedan habilitados)
+
+# === Permitir PNGs dentro de carpetas ignoradas ===
+!results/**/
+!results/**/*.png
+!logs/**/
+!logs/**/*.png
+!dataRaw/**/
+!dataRaw/**/*.png
